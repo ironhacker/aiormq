@@ -6,7 +6,7 @@ from binascii import hexlify
 import pytest
 
 import aiormq
-from aiormq.auth import AuthBase, PlainAuth
+from aiormq.auth import AuthBase, PlainAuth, ExternalAuth
 
 from .conftest import AMQP_URL, skip_when_quick_test
 
@@ -167,6 +167,23 @@ async def test_auth_plain(amqp_connection, loop):
     auth.value = b"boo"
 
     assert auth.marshal() == b"boo"
+
+
+async def test_external_auth(loop):
+    url = AMQP_URL.with_scheme("amqps").with_query(auth='external')
+    url = url.with_user(None).with_password(None)
+
+    connection = aiormq.Connection(url, loop=loop)
+    assert connection.auth_type == 'external'
+
+    auth = ExternalAuth(connection).marshal()
+
+    assert auth == b""
+
+    auth = ExternalAuth(connection)
+    auth.value = b""
+
+    assert auth.marshal() == b""
 
 
 async def test_channel_closed(amqp_connection):

@@ -124,6 +124,7 @@ class Connection(Base):
         self.last_channel_lock = asyncio.Lock()
         self.connected = asyncio.Event()
         self.connection_name = self.url.query.get("name")
+        self.auth_type = self.url.query.get("auth", "plain")
 
     @property
     def lock(self):
@@ -182,11 +183,11 @@ class Connection(Base):
         return properties
 
     @staticmethod
-    def _credentials_class(start_frame: spec.Connection.Start):
-        for mechanism in start_frame.mechanisms.decode().split():
+    def _credentials_class(start_frame: spec.Connection.Start, auth_type='plain'):
+        mechanisms = start_frame.mechanisms.decode().split()
+        if auth_type.upper() in mechanisms:
             with suppress(KeyError):
-                return AuthMechanism[mechanism]
-
+                return AuthMechanism[auth_type.upper()]
         raise exc.AuthenticationError(
             start_frame.mechanisms, [m.name for m in AuthMechanism],
         )
@@ -241,7 +242,7 @@ class Connection(Base):
         except EOFError as e:
             raise exc.IncompatibleProtocolError(*e.args) from e
 
-        credentials = self._credentials_class(frame)
+        credentials = self._credentials_class(frame, self.auth_type)
 
         self.server_properties = frame.server_properties
 

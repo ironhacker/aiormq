@@ -26,6 +26,11 @@ class PlainAuth(AuthBase):
             + (self.connector.url.password or "guest").encode()
         )
 
+class ExternalAuth(AuthBase):
+    def encode(self) -> bytes:
+        return (
+            b''
+        )
 
 class AuthMechanism(Enum):
     PLAIN = PlainAuth
